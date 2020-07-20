@@ -5,48 +5,55 @@ using System.Net;
 using System.Net.Http;
 using System.Web.Http;
 using System.IO;
+using System.Web;
 
 namespace FileUpload.Controllers
 {
     public class FileUploadController : ApiController
     {
         [HttpPost()]
-        public string UploadFiles()
+        public HttpResponseMessage UploadFiles()
         {
-            int iUploadedCnt = 0;
-
-            // DEFINE THE PATH WHERE WE WANT TO SAVE THE FILES.
-            string sPath = "";
-            sPath = System.Web.Hosting.HostingEnvironment.MapPath("~/locker/");
-
+            HttpResponseMessage result;
+            int iUploadedCnt = 0;         //Count of the Number of Uploaded Files
+            var httpRequest = HttpContext.Current.Request;
             System.Web.HttpFileCollection hfc = System.Web.HttpContext.Current.Request.Files;
-
-            // CHECK THE FILE COUNT.
-            for (int iCnt = 0; iCnt <= hfc.Count - 1; iCnt++)
+            try
             {
-                System.Web.HttpPostedFile hpf = hfc[iCnt];
-
-                if (hpf.ContentLength > 0)
+                if (httpRequest.Files.Count > 0)
                 {
-                    // CHECK IF THE SELECTED FILE(S) ALREADY EXISTS IN FOLDER. (AVOID DUPLICATE)
-                    if (!File.Exists(sPath + Path.GetFileName(hpf.FileName)))
+                    var docfiles = new List<string>();
+                    for (int iCnt = 0; iCnt <= hfc.Count - 1; iCnt++)
                     {
-                        // SAVE THE FILES IN THE FOLDER.
-                        hpf.SaveAs(sPath + Path.GetFileName(hpf.FileName));
-                        iUploadedCnt = iUploadedCnt + 1;
+                        System.Web.HttpPostedFile hpf = hfc[iCnt];
+
+                        if (hpf.ContentLength > 0)
+                        {
+                            string filePath = httpRequest.Form["Main Path"] + httpRequest.Form["Sub Path"];   // This is used when we ant to save the file to a specific path
+                            //var filePath = HttpContext.Current.Server.MapPath("~/" + postedFile.FileName);      // This is used when we ant to save the file to the current project directory
+
+                            bool exists = System.IO.Directory.Exists(filePath);          //Checks to see if the Directory exists
+                            if (!exists)                                                 //If not it creates a separate new Directory
+                                System.IO.Directory.CreateDirectory(filePath);
+                            filePath += hpf.FileName;
+                            hpf.SaveAs(filePath);
+                            docfiles.Add(filePath);
+                            iUploadedCnt = iUploadedCnt + 1;         //Increment the Count per Save
+                        }
                     }
+                    string uploadedFiles = string.Join(Environment.NewLine, docfiles);
+                    result = Request.CreateResponse(HttpStatusCode.Created, "The following " + iUploadedCnt + " Files have been uploaded: " + uploadedFiles);
+                }
+                else
+                {
+                    result = Request.CreateResponse(HttpStatusCode.BadRequest, "File Not Uploaded!!");
                 }
             }
-
-            // RETURN A MESSAGE (OPTIONAL).
-            if (iUploadedCnt > 0)
+            catch(Exception ex)
             {
-                return iUploadedCnt + " Files Uploaded Successfully";
+                result = Request.CreateResponse(HttpStatusCode.BadRequest, "File Not Uploaded!!");
             }
-            else
-            {
-                return "Upload Failed";
-            }
+            return result;
         }
     }
 }
