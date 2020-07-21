@@ -27,7 +27,7 @@ namespace FileUpload.Controllers
                     {
                         System.Web.HttpPostedFile hpf = hfc[iCnt];
 
-                        if (hpf.ContentLength > 0)
+                        if (hpf !=null && hpf.ContentLength > 0)      //checks if a valid file has been uploaded or not
                         {
                             string filePath = httpRequest.Form["Main Path"] + httpRequest.Form["Sub Path"];   // This is used when we ant to save the file to a specific path
                             //var filePath = HttpContext.Current.Server.MapPath("~/" + postedFile.FileName);      // This is used when we ant to save the file to the current project directory
@@ -41,7 +41,7 @@ namespace FileUpload.Controllers
                             iUploadedCnt = iUploadedCnt + 1;         //Increment the Count per Save
                         }
                     }
-                    string uploadedFiles = string.Join(Environment.NewLine, docfiles);
+                    string uploadedFiles = string.Join(",", docfiles);
                     result = Request.CreateResponse(HttpStatusCode.Created, "The following " + iUploadedCnt + " Files have been uploaded: " + uploadedFiles);
                 }
                 else
